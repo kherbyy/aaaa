@@ -166,14 +166,15 @@ RunService:BindToRenderStep("WaveESP_Render",Enum.RenderPriority.Camera.Value,fu
                     d.HealthBar.Position = Vector2.new(healthX,barY + barHeight*(1-hpPercent))
                     d.HealthBar.Size = Vector2.new(4,barHeight*hpPercent)
                     d.HealthBar.Color = (hpPercent>0.6 and Color3.fromRGB(0,255,0)) or (hpPercent>0.3 and Color3.fromRGB(255,255,0)) or Color3.fromRGB(255,0,0)
-                    d.HealthBar.Visible=true
+                    d.HealthBar.Visible=hpPercent>0
 
                     -- Shield (RIGHT side)
                     local shieldPercent = 0
                     local shieldObj = p:FindFirstChild("DataFolder") and p.DataFolder:FindFirstChild("Information") and p.DataFolder.Information:FindFirstChild("ShieldSave")
                     if shieldObj then
                         local val = shieldObj.Value or 0
-                        local maxVal = shieldObj:FindFirstChild("MaxValue") and shieldObj.MaxValue or 100
+                        local maxValObj = shieldObj:FindFirstChild("MaxValue")
+                        local maxVal = (maxValObj and maxValObj.Value) or 100
                         shieldPercent = math.clamp(val/maxVal,0,1)
                     end
                     local shieldX = d.Box.Position.X + d.Box.Size.X + 2
