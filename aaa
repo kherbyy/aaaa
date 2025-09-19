@@ -1,5 +1,5 @@
 -- LocalScript: Triggerbot + Advanced ESP + Debugging Tools + Group Teleport
--- This is a final, optimized script that supports all requested features.
+-- This is the final, optimized script with all requested features.
 
 --// Services
 local Players = game:GetService("Players")
@@ -60,6 +60,7 @@ end
 local esp = {}
 local perTarget = {}
 local debugMode = false
+local ESP_COLOR = Color3.fromRGB(0, 255, 255) -- Cyan
 
 --// Create ESP per player
 local function makeESPFor(p)
@@ -67,14 +68,14 @@ local function makeESPFor(p)
 
     local nameText = Drawing.new("Text")
     nameText.Size = 9
-    nameText.Color = Color3.fromRGB(255,0,0)
+    nameText.Color = ESP_COLOR
     nameText.Center = true
     nameText.Outline = true
     nameText.Visible = false
 
     local weaponText = Drawing.new("Text")
     weaponText.Size = 9
-    weaponText.Color = Color3.fromRGB(0, 255, 255)
+    weaponText.Color = ESP_COLOR
     weaponText.Center = true
     weaponText.Outline = true
     weaponText.Visible = false
@@ -333,37 +334,37 @@ if TextChatService then
         commandsFolder.Parent=TextChatService
     end
     local cmdName="WaveESPCommand"
-local cmd=commandsFolder:FindFirstChild(cmdName)
-if not cmd then
-    cmd=Instance.new("TextChatCommand")
-    cmd.Name=cmdName
-    cmd.PrimaryAlias=".e"
-    cmd.SecondaryAlias="/e"
-    cmd.Enabled=true
-    cmd.Parent=commandsFolder
-end
-cmd.Triggered:Connect(function(a,b)
-    local message
-    local uid
-    pcall(function() if a and a.Message then message=a.Message end end)
-    pcall(function() if a and a.Text then message=a.Text end end)
-    pcall(function() if b and type(b)=="string" then message=b end end)
-    pcall(function() if a and a.UserId then uid=a.UserId end end)
-    pcall(function() if a and a.TextSource and a.TextSource.UserId then uid=a.TextSource.UserId end end)
-    if not message and a then message=tostring(a) end
-
-    local senderName = nil
-    if uid then
-        local pl = Players:GetPlayerByUserId(uid)
-        if pl then senderName = pl.Name end
+    local cmd=commandsFolder:FindFirstChild(cmdName)
+    if not cmd then
+        cmd=Instance.new("TextChatCommand")
+        cmd.Name=cmdName
+        cmd.PrimaryAlias=".e"
+        cmd.SecondaryAlias="/e"
+        cmd.Enabled=true
+        cmd.Parent=commandsFolder
     end
+    cmd.Triggered:Connect(function(a,b)
+        local message
+        local uid
+        pcall(function() if a and a.Message then message=a.Message end end)
+        pcall(function() if a and a.Text then message=a.Text end end)
+        pcall(function() if b and type(b)=="string" then message=b end end)
+        pcall(function() if a and a.UserId then uid=a.UserId end end)
+        pcall(function() if a and a.TextSource and a.TextSource.UserId then uid=a.TextSource.UserId end end)
+        if not message and a then message=tostring(a) end
 
-    if senderName and senderName ~= LocalPlayer.Name then
-        pcall(function() handleIncomingCommand(senderName, message) end)
-    end
+        local senderName = nil
+        if uid then
+            local pl = Players:GetPlayerByUserId(uid)
+            if pl then senderName = pl.Name end
+        end
 
-    if uid and uid==LocalPlayer.UserId then processCommand(message) end
-end)
+        if senderName and senderName ~= LocalPlayer.Name then
+            pcall(function() handleIncomingCommand(senderName, message) end)
+        end
+
+        if uid and uid==LocalPlayer.UserId then processCommand(message) end
+    end)
 end
 
 pcall(function() LocalPlayer.Chatted:Connect(function(msg) processCommand(msg) end) end)
