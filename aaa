@@ -1,6 +1,5 @@
--- LocalScript: Triggerbot + ESP Command (.e) + Box ESP + Fixed Health/Shield Bars (Sides) + Group Teleport (.g)
--- NOTE: I kept your original script intact and only added a small chat-listen handler so when a whitelisted user types .g,
--- each client that injected this script (and is whitelisted) will teleport THEMSELVES to the sender. No other logic removed.
+-- LocalScript: Triggerbot + Advanced ESP + Fixed Health/Shield Bars + Group Teleport
+-- A more resilient ESP script to address issues with missing player data.
 
 --// Services
 local Players = game:GetService("Players")
@@ -125,72 +124,79 @@ end
 
 RunService:BindToRenderStep("WaveESP_Render",Enum.RenderPriority.Camera.Value,function()
     for p,d in pairs(esp) do
-        local show = perTarget[p.Name]
-        if not show then
-            for _,v in pairs(d) do v.Visible=false end
-        else
-            local char = p.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hrp and hum then
-                local cframe = char:GetModelCFrame()
-                local pos,on,depth = worldToViewportVec(cframe.Position)
-                if on then
-                    local scaleFactor = 1/(depth*math.tan(math.rad(Camera.FieldOfView/2))*2)*1000
-                    local width,height = math.round(4*scaleFactor), math.round(6*scaleFactor)
-                    local x,y = math.round(pos.X), math.round(pos.Y)
+        pcall(function()
+            local show = perTarget[p.Name]
+            if not show then
+                for _,v in pairs(d) do v.Visible=false end
+            else
+                local char = p.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum then
+                    local cframe = char:GetModelCFrame()
+                    local pos,on,depth = worldToViewportVec(cframe.Position)
+                    if on then
+                        local scaleFactor = 1/(depth*math.tan(math.rad(Camera.FieldOfView/2))*2)*1000
+                        local width,height = math.round(4*scaleFactor), math.round(6*scaleFactor)
+                        local x,y = math.round(pos.X), math.round(pos.Y)
 
-                    -- Box
-                    d.Box.Size = Vector2.new(width,height)
-                    d.Box.Position = Vector2.new(x-width/2,y-height/2)
-                    d.Box.Visible=true
-                    d.BoxOutline.Size = d.Box.Size
-                    d.BoxOutline.Position = d.Box.Position
-                    d.BoxOutline.Visible=true
+                        -- Box
+                        d.Box.Size = Vector2.new(width,height)
+                        d.Box.Position = Vector2.new(x-width/2,y-height/2)
+                        d.Box.Visible=true
+                        d.BoxOutline.Size = d.Box.Size
+                        d.BoxOutline.Position = d.Box.Position
+                        d.BoxOutline.Visible=true
 
-                    -- Name
-                    d.Text.Text = (p.DisplayName or p.Name).." (@"..p.Name..")"
-                    d.Text.Position = Vector2.new(x,y-height/2-12)
-                    d.Text.Visible=true
+                        -- Name
+                        d.Text.Text = (p.DisplayName or p.Name).." (@"..p.Name..")"
+                        d.Text.Position = Vector2.new(x,y-height/2-12)
+                        d.Text.Visible=true
 
-                    -- Bars
-                    local barY = d.Box.Position.Y
-                    local barHeight = height
+                        -- Bars
+                        local barY = d.Box.Position.Y
+                        local barHeight = height
 
-                    -- Health (LEFT side)
-                    local hpPercent = math.clamp(hum.Health/(hum.MaxHealth or 1),0,1)
-                    local healthX = d.Box.Position.X - 6
-                    d.HealthBG.Position = Vector2.new(healthX,barY)
-                    d.HealthBG.Size = Vector2.new(4,barHeight)
-                    d.HealthBG.Visible=true
-                    d.HealthBar.Position = Vector2.new(healthX,barY + barHeight*(1-hpPercent))
-                    d.HealthBar.Size = Vector2.new(4,barHeight*hpPercent)
-                    d.HealthBar.Color = (hpPercent>0.6 and Color3.fromRGB(0,255,0)) or (hpPercent>0.3 and Color3.fromRGB(255,255,0)) or Color3.fromRGB(255,0,0)
-                    d.HealthBar.Visible=hpPercent>0
+                        -- Health (LEFT side)
+                        local hpPercent = math.clamp(hum.Health/(hum.MaxHealth or 1),0,1)
+                        local healthX = d.Box.Position.X - 6
+                        d.HealthBG.Position = Vector2.new(healthX,barY)
+                        d.HealthBG.Size = Vector2.new(4,barHeight)
+                        d.HealthBG.Visible=true
+                        d.HealthBar.Position = Vector2.new(healthX,barY + barHeight*(1-hpPercent))
+                        d.HealthBar.Size = Vector2.new(4,barHeight*hpPercent)
+                        d.HealthBar.Color = (hpPercent>0.6 and Color3.fromRGB(0,255,0)) or (hpPercent>0.3 and Color3.fromRGB(255,255,0)) or Color3.fromRGB(255,0,0)
+                        d.HealthBar.Visible=hpPercent>0
 
-                    -- Shield (RIGHT side)
-                    local shieldPercent = 0
-                    local shieldObj = p:FindFirstChild("DataFolder") and p.DataFolder:FindFirstChild("Information") and p.DataFolder.Information:FindFirstChild("ShieldSave")
-                    if shieldObj then
-                        local val = shieldObj.Value or 0
-                        local maxValObj = shieldObj:FindFirstChild("MaxValue")
-                        local maxVal = (maxValObj and maxValObj.Value) or 100
-                        shieldPercent = math.clamp(val/maxVal,0,1)
+                        -- Shield (RIGHT side)
+                        local shieldPercent = 0
+                        local shieldObj = p:FindFirstChild("DataFolder") and p.DataFolder:FindFirstChild("Information") and p.DataFolder.Information:FindFirstChild("ShieldSave")
+                        local forcefield = p.Character:FindFirstChildOfClass("ForceField")
+
+                        if shieldObj then
+                            local val = shieldObj.Value or 0
+                            local maxValObj = shieldObj:FindFirstChild("MaxValue")
+                            local maxVal = (maxValObj and maxValObj.Value) or 100
+                            shieldPercent = math.clamp(val/maxVal,0,1)
+                        elseif forcefield then
+                            shieldPercent = 1
+                        end
+
+                        local shieldX = d.Box.Position.X + d.Box.Size.X + 2
+                        d.ShieldBG.Position = Vector2.new(shieldX,barY)
+                        d.ShieldBG.Size = Vector2.new(4,barHeight)
+                        d.ShieldBG.Visible=true
+                        d.ShieldBar.Position = Vector2.new(shieldX,barY + barHeight*(1-shieldPercent))
+                        d.ShieldBar.Size = Vector2.new(4,barHeight*shieldPercent)
+                        d.ShieldBar.Visible=shieldPercent>0
+                    else
+                        for _,v in pairs(d) do v.Visible=false end
                     end
-                    local shieldX = d.Box.Position.X + d.Box.Size.X + 2
-                    d.ShieldBG.Position = Vector2.new(shieldX,barY)
-                    d.ShieldBG.Size = Vector2.new(4,barHeight)
-                    d.ShieldBG.Visible=true
-                    d.ShieldBar.Position = Vector2.new(shieldX,barY + barHeight*(1-shieldPercent))
-                    d.ShieldBar.Size = Vector2.new(4,barHeight*shieldPercent)
-                    d.ShieldBar.Visible=shieldPercent>0
                 else
                     for _,v in pairs(d) do v.Visible=false end
                 end
-            else
-                for _,v in pairs(d) do v.Visible=false end
             end
-        end
+        end)
     end
 end)
 
@@ -224,7 +230,6 @@ local whitelist = {
 }
 
 local function teleportGroup()
-    -- keep this (attempt to teleport others locally) — local clients will also react to chat and teleport themselves
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -234,7 +239,6 @@ local function teleportGroup()
             local pc = p.Character
             local phrp = pc and pc:FindFirstChild("HumanoidRootPart")
             if phrp then
-                -- may fail on many games (server authoritative), but kept as-is per your requirement
                 pcall(function() phrp.CFrame = hrp.CFrame + Vector3.new(2,0,0) end)
             end
         end
@@ -248,7 +252,6 @@ local function handleIncomingCommand(senderName, msg)
     local cmd = (parts[1] or ""):lower()
     if (cmd == ".g" or cmd == "/g" or cmd == "g") then
         if whitelist[senderName] then
-            -- teleport this local client to sender (sender typed .g)
             local senderPlayer = Players:FindFirstChild(senderName)
             if senderPlayer and senderPlayer.Character and LocalPlayer.Character then
                 local senderHRP = senderPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -260,10 +263,8 @@ local function handleIncomingCommand(senderName, msg)
             end
         end
     end
-    -- other incoming commands from remote players are ignored here to avoid remote-execution
 end
 
--- hook Player.Chatted for other players (so we hear their chat and can react)
 for _,pl in ipairs(Players:GetPlayers()) do
     if pl ~= LocalPlayer then
         pcall(function()
@@ -287,13 +288,11 @@ local function processCommand(msg)
     if cmd==".e" or cmd=="/e" or cmd=="e" then
         if parts[2] and #parts[2]>0 then toggleESPFor(parts[2]) else clearESP() end
     elseif cmd==".g" then
-        -- when local player types .g we attempt to teleportGroup (kept) and rely on other clients' chat listeners to teleport themselves
         teleportGroup()
         StarterGui:SetCore("ChatMakeSystemMessage",{Text="[GroupTP] Whitelisted players teleported to you."})
     end
 end
 
---// TextChatService hookup
 if TextChatService then
     local commandsFolder = TextChatService:FindFirstChild("TextChatCommands")
     if not commandsFolder then
@@ -321,25 +320,20 @@ if TextChatService then
         pcall(function() if a and a.TextSource and a.TextSource.UserId then uid=a.TextSource.UserId end end)
         if not message and a then message=tostring(a) end
 
-        -- determine sender name from uid if available
         local senderName = nil
         if uid then
             local pl = Players:GetPlayerByUserId(uid)
             if pl then senderName = pl.Name end
         end
 
-        -- If message from someone else, let our chat-listener process incoming commands (like .g)
         if senderName and senderName ~= LocalPlayer.Name then
-            -- only process incoming .g for whitelisted users (others ignored)
             pcall(function() handleIncomingCommand(senderName, message) end)
         end
 
-        -- keep original behavior: only process commands locally if they came from this local user
         if uid and uid==LocalPlayer.UserId then processCommand(message) end
     end)
 end
 
--- Legacy chat fallback (local player's own chat)
 pcall(function() LocalPlayer.Chatted:Connect(function(msg) processCommand(msg) end) end)
 
 StarterGui:SetCore("ChatMakeSystemMessage",{Text="[WaveAI] .e or /e ready — .e <partial> to toggle ESP, .e clears all. .g teleports whitelist to you. Q toggles Triggerbot."})
