@@ -72,6 +72,13 @@ local function makeESPFor(p)
     nameText.Outline = true
     nameText.Visible = false
 
+    local weaponText = Drawing.new("Text")
+    weaponText.Size = 9
+    weaponText.Color = Color3.fromRGB(0, 255, 255)
+    weaponText.Center = true
+    weaponText.Outline = true
+    weaponText.Visible = false
+
     local function makeBar(color)
         local bar = Drawing.new("Square")
         bar.Filled = true
@@ -97,6 +104,7 @@ local function makeESPFor(p)
 
     esp[p] = {
         Text = nameText,
+        WeaponText = weaponText,
         HealthBG = makeBar(Color3.fromRGB(60,60,60)),
         HealthBar = makeBar(Color3.fromRGB(0,255,0)),
         ShieldBG = makeBar(Color3.fromRGB(60,60,60)),
@@ -133,6 +141,7 @@ RunService:BindToRenderStep("WaveESP_Render",Enum.RenderPriority.Camera.Value,fu
                 local char = p.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
+                local equippedTool = char and char:FindFirstChildOfClass("Tool")
                 if hrp and hum then
                     local cframe = char:GetModelCFrame()
                     local pos,on,depth = worldToViewportVec(cframe.Position)
@@ -153,6 +162,15 @@ RunService:BindToRenderStep("WaveESP_Render",Enum.RenderPriority.Camera.Value,fu
                         d.Text.Text = (p.DisplayName or p.Name).." (@"..p.Name..")"
                         d.Text.Position = Vector2.new(x,y-height/2-12)
                         d.Text.Visible=true
+                        
+                        -- Weapon
+                        if equippedTool then
+                            d.WeaponText.Text = "["..equippedTool.Name.."]"
+                            d.WeaponText.Position = Vector2.new(x,y+height/2+12)
+                            d.WeaponText.Visible = true
+                        else
+                            d.WeaponText.Visible = false
+                        end
 
                         -- Bars
                         local barY = d.Box.Position.Y
@@ -315,37 +333,37 @@ if TextChatService then
         commandsFolder.Parent=TextChatService
     end
     local cmdName="WaveESPCommand"
-    local cmd=commandsFolder:FindFirstChild(cmdName)
-    if not cmd then
-        cmd=Instance.new("TextChatCommand")
-        cmd.Name=cmdName
-        cmd.PrimaryAlias=".e"
-        cmd.SecondaryAlias="/e"
-        cmd.Enabled=true
-        cmd.Parent=commandsFolder
+local cmd=commandsFolder:FindFirstChild(cmdName)
+if not cmd then
+    cmd=Instance.new("TextChatCommand")
+    cmd.Name=cmdName
+    cmd.PrimaryAlias=".e"
+    cmd.SecondaryAlias="/e"
+    cmd.Enabled=true
+    cmd.Parent=commandsFolder
+end
+cmd.Triggered:Connect(function(a,b)
+    local message
+    local uid
+    pcall(function() if a and a.Message then message=a.Message end end)
+    pcall(function() if a and a.Text then message=a.Text end end)
+    pcall(function() if b and type(b)=="string" then message=b end end)
+    pcall(function() if a and a.UserId then uid=a.UserId end end)
+    pcall(function() if a and a.TextSource and a.TextSource.UserId then uid=a.TextSource.UserId end end)
+    if not message and a then message=tostring(a) end
+
+    local senderName = nil
+    if uid then
+        local pl = Players:GetPlayerByUserId(uid)
+        if pl then senderName = pl.Name end
     end
-    cmd.Triggered:Connect(function(a,b)
-        local message
-        local uid
-        pcall(function() if a and a.Message then message=a.Message end end)
-        pcall(function() if a and a.Text then message=a.Text end end)
-        pcall(function() if b and type(b)=="string" then message=b end end)
-        pcall(function() if a and a.UserId then uid=a.UserId end end)
-        pcall(function() if a and a.TextSource and a.TextSource.UserId then uid=a.TextSource.UserId end end)
-        if not message and a then message=tostring(a) end
 
-        local senderName = nil
-        if uid then
-            local pl = Players:GetPlayerByUserId(uid)
-            if pl then senderName = pl.Name end
-        end
+    if senderName and senderName ~= LocalPlayer.Name then
+        pcall(function() handleIncomingCommand(senderName, message) end)
+    end
 
-        if senderName and senderName ~= LocalPlayer.Name then
-            pcall(function() handleIncomingCommand(senderName, message) end)
-        end
-
-        if uid and uid==LocalPlayer.UserId then processCommand(message) end
-    end)
+    if uid and uid==LocalPlayer.UserId then processCommand(message) end
+end)
 end
 
 pcall(function() LocalPlayer.Chatted:Connect(function(msg) processCommand(msg) end) end)
