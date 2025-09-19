@@ -1,5 +1,5 @@
--- LocalScript: Triggerbot + Advanced ESP + Fixed Health/Shield Bars + Group Teleport
--- A more resilient ESP script to address issues with missing player data.
+-- LocalScript: Triggerbot + Advanced ESP + Debugging Tools + Group Teleport
+-- This is a final, optimized script that supports all requested features.
 
 --// Services
 local Players = game:GetService("Players")
@@ -59,6 +59,7 @@ end
 --// ESP caches
 local esp = {}
 local perTarget = {}
+local debugMode = false
 
 --// Create ESP per player
 local function makeESPFor(p)
@@ -208,19 +209,32 @@ end
 
 local function toggleESPFor(search)
     search=(search or ""):lower()
+
+    if search == "debug" then
+        debugMode = not debugMode
+        StarterGui:SetCore("ChatMakeSystemMessage",{Text="[ESP Debug] "..(debugMode and "ON" or "OFF")})
+        return
+    end
+
     local found=false
+    if debugMode then print("Attempting to find player matching '"..search.."'") end
     for _,p in ipairs(Players:GetPlayers()) do
         if p~=LocalPlayer then
             local n=(p.Name or ""):lower()
             local dname=(p.DisplayName or ""):lower()
+            if debugMode then print(" - Checking player: "..n) end
             if search~="" and (n:find(search,1,true) or dname:find(search,1,true)) then
                 found=true
                 perTarget[p.Name]=not perTarget[p.Name]
                 StarterGui:SetCore("ChatMakeSystemMessage",{Text="[ESP] "..p.Name.." -> "..(perTarget[p.Name] and "ON" or "OFF")})
+                if debugMode then print(" - Match found!") end
             end
         end
     end
-    if not found then StarterGui:SetCore("ChatMakeSystemMessage",{Text="[ESP] No match for '"..search.."'"}) end
+    if not found then
+        StarterGui:SetCore("ChatMakeSystemMessage",{Text="[ESP] No match for '"..search.."'"})
+        if debugMode then print(" - No matches found.") end
+    end
 end
 
 --// Group Teleport Whitelist
@@ -336,4 +350,4 @@ end
 
 pcall(function() LocalPlayer.Chatted:Connect(function(msg) processCommand(msg) end) end)
 
-StarterGui:SetCore("ChatMakeSystemMessage",{Text="[WaveAI] .e or /e ready — .e <partial> to toggle ESP, .e clears all. .g teleports whitelist to you. Q toggles Triggerbot."})
+StarterGui:SetCore("ChatMakeSystemMessage",{Text="[WaveAI] .e <partial> to toggle ESP | .e debug to toggle debug mode. .g teleports whitelist to you. Q toggles Triggerbot."})
